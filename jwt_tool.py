@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 #
-# JWT_Tool version 2.2.7 (28_05_2024)
+# JWT_Tool version 2.2.8 (01_05_2025)
 # Written by Andy Tyler (@ticarpi)
 # Please use responsibly...
 # Software URL: https://github.com/ticarpi/jwt_tool
 # Web: https://www.ticarpi.com
 # Twitter: @ticarpi
 
-jwttoolvers = "2.2.7"
+jwttoolvers = "2.2.8"
 import ssl
 import sys
 import os
