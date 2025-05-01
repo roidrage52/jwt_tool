@@ -23,6 +23,8 @@ from datetime import datetime
 import configparser
 from http.cookies import SimpleCookie
 from collections import OrderedDict
+from ratelimit import limits, RateLimitException, sleep_and_retry
+
 try:
     from Cryptodome.Signature import PKCS1_v1_5, DSS, pss
     from Cryptodome.Hash import SHA256, SHA384, SHA512
@@ -51,6 +53,10 @@ except:
 # To fix broken colours in Windows cmd/Powershell: uncomment the below two lines. You will need to install colorama: 'python3 -m pip install colorama'
 # import colorama
 # colorama.init()
+
+# CONSTANTS
+DEFAULT_RATE_LIMIT  = 999999999
+DEFAULT_RATE_PERIOD = 60
 
 def cprintc(textval, colval):
     if not args.bare:
@@ -113,6 +119,7 @@ def createConfig():
     config['argvals'] = {'# Set at runtime - changes here are ignored': None,
         'sigType': '',
         'targetUrl': '',
+        'rate': str(DEFAULT_RATE_LIMIT),
         'cookies': '',
         'key': '',
         'keyList': '',
@@ -137,6 +144,9 @@ def createConfig():
     cprintc("Make sure to set the \"httplistener\" value to a URL you can monitor to enable out-of-band checks.", "cyan")
     exit(1)
 
+
+@sleep_and_retry
+@limits(calls=DEFAULT_RATE_LIMIT, period=DEFAULT_RATE_PERIOD)
 def sendToken(token, cookiedict, track, headertoken="", postdata=None):
     if not postdata:
         postdata = config['argvals']['postData']
@@ -1835,6 +1845,8 @@ if __name__ == '__main__':
                         help="URL to send HTTP request to with new JWT")
     parser.add_argument("-r", "--request", action="store",
                         help="URL request to base on")
+    parser.add_argument("-rt", "--rate", action="store",
+                        help="Max. number of requests per minute")
     parser.add_argument("-i", "--insecure", action="store_true",
                         help="Use HTTP for passed request")
     parser.add_argument("-rc", "--cookies", action="store",
@@ -1903,6 +1915,7 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     if (os.path.isfile(configFileName)):
         config.read(configFileName)
+        print(configFileName)
     else:
         cprintc("No config file yet created.\nRunning config setup.", "cyan")
         createConfig()
@@ -1971,6 +1984,25 @@ if __name__ == '__main__':
         absolute_url = urljoin(base_url + (':' + port if port else ''), url)
         args.targeturl = absolute_url
 
+    if args.rate:
+        try:
+            if int(args.rate) > 0:
+                rate = int(args.rate)
+                # Reassign decorator with new rate limit value
+                sendToken = sleep_and_retry(limits(calls=rate, period=DEFAULT_RATE_PERIOD)(sendToken))
+                # Display appropriate log
+                RPS = rate/DEFAULT_RATE_PERIOD
+                if RPS < 1:
+                    cprintc("[+] Running at a "+ str((rate/DEFAULT_RATE_PERIOD)*60) + "requests per minute", "cyan")
+                else:
+                    cprintc("[+] Running at a "+ str((rate/DEFAULT_RATE_PERIOD)) + "requests per second", "cyan")
+                    
+            else:
+                cprintc("Rate must be an integer > 0", "red")
+                exit(1)
+        except:
+            cprintc("Error: could not handle rate argument", "red")
+            exit(1)
     if args.targeturl:
         if args.cookies or args.headers or args.postdata:
             jwt_count = 0
@@ -2102,6 +2134,7 @@ if __name__ == '__main__':
         config['services']['redir'] = "False"
     if args.request:
         config['argvals']['request'] = args.request
+    
 
     if not args.crack and not args.exploit and not args.verify and not args.tamper and not args.injectclaims:
         rejigToken(headDict, paylDict, sig)
