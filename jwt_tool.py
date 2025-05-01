@@ -176,7 +176,7 @@ def sendToken(token, cookiedict, track, headertoken="", postdata=None):
             cprintc("HTTP response took about 10 seconds or more - could be a sign of a bug or vulnerability", "cyan")
         return [response.status_code, len(response.content), response.content]
     except requests.exceptions.ProxyError as err:
-        cprintc("[ERROR] ProxyError - check proxy is up and not set to tamper with requests\n"+str(err), "red")
+        cprintc("[ERROR] ProxyError - check proxy is up and not set to tamper with requests\n(If proxy is not needed disable this with -np on the commandline.)\n"+str(err), "red")
         exit(1)
 
 def parse_dict_cookies(value):
