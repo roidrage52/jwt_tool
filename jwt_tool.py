@@ -1993,9 +1993,9 @@ if __name__ == '__main__':
                 # Display appropriate log
                 RPS = rate/DEFAULT_RATE_PERIOD
                 if RPS < 1:
-                    cprintc("[+] Running at a "+ str((rate/DEFAULT_RATE_PERIOD)*60) + "requests per minute", "cyan")
+                    cprintc("[+] RATE-LIMIT: Running at "+ str((rate/DEFAULT_RATE_PERIOD)*60) + " requests per minute\n", "cyan")
                 else:
-                    cprintc("[+] Running at a "+ str((rate/DEFAULT_RATE_PERIOD)) + "requests per second", "cyan")
+                    cprintc("[+] RATE-LIMIT: Running at "+ str((rate/DEFAULT_RATE_PERIOD)) + " requests per second\n", "cyan")
                     
             else:
                 cprintc("Rate must be an integer > 0", "red")
