@@ -778,6 +778,10 @@ def jwksEmbed(newheadDict, newpaylDict):
     newjwks = buildJWKS(n, e, config['customising']['jwks_kid'])
     newHead["jwk"] = newjwks
     newHead["alg"] = "RS256"
+
+    if "kid" in newHead:
+        newHead["kid"] = "jwt_tool"
+
     key = privKey
     # key = RSA.importKey(privKey)
     newContents = genContents(newHead, newpaylDict)
@@ -2089,7 +2093,7 @@ if __name__ == '__main__':
     if args.headervalue:
         config['argvals']['headervalue'] = str(args.headervalue)
     if args.postdata:
-        config['argvals']['postData'] = args.postdata
+        config['argvals']['postData'] = args.postdata.replace('%', '%%')
     if args.canaryvalue:
         config['argvals']['canaryvalue'] = args.canaryvalue
     if args.noproxy:
